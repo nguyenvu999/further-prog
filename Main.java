@@ -279,15 +279,15 @@ public class Main {
     private static void addClaim() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("Enter claim ID:");
+        System.out.print("Enter claim ID: ");
         String id = getInputNotBlank(scanner, "Claim ID");
 
-        System.out.print("Enter claim date (YYYY-MM-DD):");
+        System.out.print("Enter claim date (YYYY-MM-DD): ");
         Date claimDate = parseDate(getInputNotBlank(scanner, "Claim Date"));
 
         String insuredPerson;
         do {
-            System.out.print("Insured Person:");
+            System.out.print("Insured Person: ");
             insuredPerson = getInputNotBlank(scanner, "Insured Person");
             if (containsDigits(insuredPerson)) {
                 System.out.println("Error: Name cannot contain numbers. Please enter a valid name.");
@@ -295,16 +295,16 @@ public class Main {
             }
         } while (insuredPerson == null);
 
-        System.out.println("Enter card number:");
+        System.out.print("Enter card number: ");
         String cardNumber = getInputNotBlank(scanner, "Card Number");
 
-        System.out.println("Enter exam date (YYYY-MM-DD):");
+        System.out.println("Enter exam date (YYYY-MM-DD): ");
         Date examDate = parseDate(getInputNotBlank(scanner, "Exam Date"));
 
         double claimAmount;
         while (true) {
             try {
-                System.out.println("Enter claim amount:");
+                System.out.println("Enter claim amount: ");
                 String input = getInputNotBlank(scanner, "Claim Amount");
                 claimAmount = Double.parseDouble(input);
                 break; // Exit loop if input is successfully read
@@ -321,7 +321,7 @@ public class Main {
             }
         } while (!isValidStatus(status));
 
-        System.out.println("Enter receiver banking info:");
+        System.out.println("Enter receiver banking info: ");
         String receiverBankingInfo = getInputNotBlank(scanner, "Receiver Banking Info");
 
         Claim newClaim = new Claim(id, claimDate, insuredPerson, cardNumber, examDate,
