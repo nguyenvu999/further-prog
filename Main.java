@@ -137,10 +137,10 @@ class FileManager {
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
                 String id = parts[0];
-                Date claimDate = DATE_FORMAT.parse(parts[1]);
+                Date claimDate = parts[1].isEmpty() ? null : DATE_FORMAT.parse(parts[1]);
                 String insuredPerson = parts[2];
                 String cardNumber = parts[3];
-                Date examDate = DATE_FORMAT.parse(parts[4]);
+                Date examDate = parts[4].isEmpty() ? null : DATE_FORMAT.parse(parts[4]);
                 // Parse documents
                 List<String> documents = Arrays.asList(parts[5].split(";"));
                 double claimAmount = Double.parseDouble(parts[6]);
@@ -176,7 +176,8 @@ class FileManager {
     public static void saveCustomers(List<Customer> customers, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (Customer customer : customers) {
-                writer.write(customer.id + "," + customer.fullName + "," + customer.insuranceCard.cardNumber);
+                String cardNumber = customer.insuranceCard != null ? customer.insuranceCard.cardNumber : "N/A";
+                writer.write(customer.id + "," + customer.fullName + "," + cardNumber);
                 writer.newLine();
             }
         } catch (IOException e) {
@@ -184,12 +185,15 @@ class FileManager {
         }
     }
 
+
     public static void saveClaims(List<Claim> claims, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (Claim claim : claims) {
-                String documents = String.join(";", claim.documents);
-                writer.write(claim.id + "," + DATE_FORMAT.format(claim.claimDate) + "," + claim.insuredPerson +
-                        "," + claim.cardNumber + "," + DATE_FORMAT.format(claim.examDate) + "," + documents +
+                String claimDateStr = claim.claimDate != null ? DATE_FORMAT.format(claim.claimDate) : "";
+                String examDateStr = claim.examDate != null ? DATE_FORMAT.format(claim.examDate) : "";
+                String documents = claim.documents != null ? String.join(";", claim.documents) : "";
+                writer.write(claim.id + "," + claimDateStr + "," + claim.insuredPerson +
+                        "," + claim.cardNumber + "," + examDateStr + "," + documents +
                         "," + claim.claimAmount + "," + claim.status + "," + claim.receiverBankingInfo);
                 writer.newLine();
             }
@@ -197,6 +201,8 @@ class FileManager {
             e.printStackTrace();
         }
     }
+
+
 
     public static void saveInsuranceCards(List<InsuranceCard> cards, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
@@ -273,36 +279,82 @@ public class Main {
     private static void addClaim() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Enter claim ID:");
-        String id = scanner.nextLine();
+        System.out.print("Enter claim ID:");
+        String id = getInputNotBlank(scanner, "Claim ID");
 
-        System.out.println("Enter claim date (YYYY-MM-DD):");
-        Date claimDate = parseDate(scanner.nextLine());
+        System.out.print("Enter claim date (YYYY-MM-DD):");
+        Date claimDate = parseDate(getInputNotBlank(scanner, "Claim Date"));
 
-        System.out.println("Enter insured person:");
-        String insuredPerson = scanner.nextLine();
+        String insuredPerson;
+        do {
+            System.out.print("Insured Person:");
+            insuredPerson = getInputNotBlank(scanner, "Insured Person");
+            if (containsDigits(insuredPerson)) {
+                System.out.println("Error: Name cannot contain numbers. Please enter a valid name.");
+                insuredPerson = null;
+            }
+        } while (insuredPerson == null);
 
         System.out.println("Enter card number:");
-        String cardNumber = scanner.nextLine();
+        String cardNumber = getInputNotBlank(scanner, "Card Number");
 
         System.out.println("Enter exam date (YYYY-MM-DD):");
-        Date examDate = parseDate(scanner.nextLine());
+        Date examDate = parseDate(getInputNotBlank(scanner, "Exam Date"));
 
-        System.out.println("Enter claim amount:");
-        double claimAmount = scanner.nextDouble();
-        scanner.nextLine();
+        double claimAmount;
+        while (true) {
+            try {
+                System.out.println("Enter claim amount:");
+                String input = getInputNotBlank(scanner, "Claim Amount");
+                claimAmount = Double.parseDouble(input);
+                break; // Exit loop if input is successfully read
+            } catch (NumberFormatException e) {
+                System.out.println("Error: Invalid input for claim amount. Please enter a valid number.");
+            }
+        }
 
-        System.out.println("Enter claim status (New, Processing, Done):");
-        String status = scanner.nextLine();
+        String status;
+        do {
+            status = getInputNotBlank(scanner, "Claim Status (New, Processing, Done)");
+            if (!isValidStatus(status)) {
+                System.out.println("Error: Invalid status. Please enter one of the following: New, Processing, Done.");
+            }
+        } while (!isValidStatus(status));
 
         System.out.println("Enter receiver banking info:");
-        String receiverBankingInfo = scanner.nextLine();
+        String receiverBankingInfo = getInputNotBlank(scanner, "Receiver Banking Info");
 
         Claim newClaim = new Claim(id, claimDate, insuredPerson, cardNumber, examDate,
                 null, claimAmount, status, receiverBankingInfo);
         claimManager.add(newClaim);
 
         System.out.println("Claim added successfully.");
+    }
+
+    private static String getInputNotBlank(Scanner scanner, String fieldName) {
+        String input;
+        do {
+
+            input = scanner.nextLine().trim();
+            if (input.isEmpty()) {
+                System.out.println("Error: " + fieldName + " cannot be blank. Please enter a value.");
+            }
+        } while (input.isEmpty());
+        return input;
+    }
+
+
+
+    private static boolean isValidStatus(String status) {
+        return status.equalsIgnoreCase("New") || status.equalsIgnoreCase("Processing") || status.equalsIgnoreCase("Done");
+    }
+    private static boolean containsDigits(String str) {
+        for (char c : str.toCharArray()) {
+            if (Character.isDigit(c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void updateClaim() {
@@ -379,7 +431,18 @@ public class Main {
 
 
     private static Date parseDate(String dateString) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false); // Disable lenient parsing
 
-        return null;
+        while (true) {
+            try {
+                return dateFormat.parse(dateString);
+            } catch (ParseException e) {
+                System.out.println("Invalid date format! Please enter a date in the format YYYY-MM-DD:");
+                Scanner scanner = new Scanner(System.in);
+                dateString = scanner.nextLine();
+            }
+        }
     }
 }
+
