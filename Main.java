@@ -279,8 +279,15 @@ public class Main {
     private static void addClaim() {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("Enter claim ID: ");
-        String id = getInputNotBlank(scanner, "Claim ID");
+        String id;
+        do {
+            System.out.print("Enter claim ID (Format: f-numbers;10 numbers): ");
+            id = scanner.nextLine().trim();
+            if (!id.matches("f-\\d{10}")) {
+                System.out.println("Error: Invalid claim ID format. Please enter in the format f-numbers;10 numbers.");
+            }
+        } while (!id.matches("f-\\d{10}"));
+
 
         System.out.print("Enter claim date (YYYY-MM-DD): ");
         Date claimDate = parseDate(getInputNotBlank(scanner, "Claim Date"));
@@ -298,7 +305,7 @@ public class Main {
         System.out.print("Enter card number: ");
         String cardNumber = getInputNotBlank(scanner, "Card Number");
 
-        System.out.println("Enter exam date (YYYY-MM-DD): ");
+        System.out.print("Enter exam date (YYYY-MM-DD): ");
         Date examDate = parseDate(getInputNotBlank(scanner, "Exam Date"));
 
         double claimAmount;
