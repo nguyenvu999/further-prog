@@ -185,7 +185,6 @@ class FileManager {
         }
     }
 
-
     public static void saveClaims(List<Claim> claims, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (Claim claim : claims) {
@@ -202,8 +201,6 @@ class FileManager {
         }
     }
 
-
-
     public static void saveInsuranceCards(List<InsuranceCard> cards, String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (InsuranceCard card : cards) {
@@ -216,7 +213,8 @@ class FileManager {
         }
     }
 
-    private static InsuranceCard findInsuranceCard(String cardNumber) {
+    private static InsuranceCard findInsuranceCard(String cardNumber
+    ) {
         // Implement logic to find insurance card by card number
         return null;
     }
@@ -231,7 +229,6 @@ public class Main {
         List<Claim> claims = FileManager.loadClaims("claims.txt");
         List<InsuranceCard> insuranceCards = FileManager.loadInsuranceCards("insurance_cards.txt");
 
-
         claimManager = new SimpleClaimProcessManager();
         for (Claim claim : claims) {
             claimManager.add(claim);
@@ -240,14 +237,48 @@ public class Main {
         // Simple text-based UI
         Scanner scanner = new Scanner(System.in);
         while (true) {
-            System.out.println("\nInsurance Claims Management System");
-            System.out.println("1. Add Claim");
-            System.out.println("2. Update Claim");
-            System.out.println("3. Delete Claim");
-            System.out.println("4. View All Claims");
-            System.out.println("5. Exit");
+            System.out.println("\nInsurance Management System");
+            System.out.println("1. Manage Claims");
+            System.out.println("2. Manage Customers");
+            System.out.println("3. Manage Insurance Cards");
+            System.out.println("4. Exit");
             System.out.print("Enter your choice: ");
 
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    manageClaims();
+                    break;
+                case "2":
+                    manageCustomers(customers);
+                    break;
+                case "3":
+                    manageInsuranceCards(insuranceCards);
+                    break;
+                case "4":
+                    // Save data to files and exit
+                    FileManager.saveCustomers(customers, "customers.txt");
+                    FileManager.saveClaims(claimManager.getAll(), "claims.txt");
+                    FileManager.saveInsuranceCards(insuranceCards, "insurance_cards.txt");
+                    System.out.println("Data saved. Exiting...");
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid choice. Please enter a valid option.");
+            }
+        }
+    }
+
+    private static void manageClaims() {
+        // Add, delete, view claims functionality
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nManage Claims");
+            System.out.println("1. Add Claim");
+            System.out.println("2. Delete Claim");
+            System.out.println("3. View All Claims");
+            System.out.println("4. Back to Main Menu");
+            System.out.print("Enter your choice: ");
             String choice = scanner.nextLine();
 
             switch (choice) {
@@ -255,21 +286,13 @@ public class Main {
                     addClaim();
                     break;
                 case "2":
-                    updateClaim();
-                    break;
-                case "3":
                     deleteClaim();
                     break;
-                case "4":
+                case "3":
                     viewAllClaims();
                     break;
-                case "5":
-                    // Save data to files and exit
-                    FileManager.saveCustomers(customers, "customers.txt");
-                    FileManager.saveClaims(claimManager.getAll(), "claims.txt");
-                    FileManager.saveInsuranceCards(insuranceCards, "insurance_cards.txt");
-                    System.out.println("Data saved. Exiting...");
-                    System.exit(0);
+                case "4":
+                    return;
                 default:
                     System.out.println("Invalid choice. Please enter a valid option.");
             }
@@ -291,6 +314,7 @@ public class Main {
 
         System.out.print("Enter claim date (YYYY-MM-DD): ");
         Date claimDate = parseDate(getInputNotBlank(scanner, "Claim Date"));
+
 
         String insuredPerson;
         do {
@@ -337,7 +361,6 @@ public class Main {
 
         System.out.println("Claim added successfully.");
     }
-
     private static String getInputNotBlank(Scanner scanner, String fieldName) {
         String input;
         do {
@@ -345,10 +368,12 @@ public class Main {
             input = scanner.nextLine().trim();
             if (input.isEmpty()) {
                 System.out.println("Error: " + fieldName + " cannot be blank. Please enter a value.");
+                System.out.print("Enter " + fieldName + ": ");
             }
         } while (input.isEmpty());
         return input;
     }
+
 
 
 
@@ -362,40 +387,6 @@ public class Main {
             }
         }
         return false;
-    }
-
-    private static void updateClaim() {
-        Scanner scanner = new Scanner(System.in);
-
-        System.out.println("Enter claim ID to update:");
-        String id = scanner.nextLine();
-
-        Claim existingClaim = claimManager.getOne(id);
-        if (existingClaim == null) {
-            System.out.println("Claim not found.");
-            return;
-        }
-
-
-        System.out.println("Enter updated claim date (YYYY-MM-DD):");
-        existingClaim.claimDate = parseDate(scanner.nextLine());
-
-        System.out.println("Enter updated exam date (YYYY-MM-DD):");
-        existingClaim.examDate = parseDate(scanner.nextLine());
-
-        System.out.println("Enter updated claim amount:");
-        existingClaim.claimAmount = scanner.nextDouble();
-        scanner.nextLine();
-
-        System.out.println("Enter updated claim status (New, Processing, Done):");
-        existingClaim.status = scanner.nextLine();
-
-        System.out.println("Enter updated receiver banking info:");
-        existingClaim.receiverBankingInfo = scanner.nextLine();
-
-        claimManager.update(existingClaim);
-
-        System.out.println("Claim updated successfully.");
     }
 
     private static void deleteClaim() {
@@ -436,7 +427,161 @@ public class Main {
         }
     }
 
+    private static void updateClaim() {
+        Scanner scanner = new Scanner(System.in);
 
+        System.out.println("Enter claim ID to update:");
+        String id = scanner.nextLine();
+
+        Claim existingClaim = claimManager.getOne(id);
+        if (existingClaim == null) {
+            System.out.println("Claim not found.");
+            return;
+        }
+
+
+        System.out.println("Enter updated claim date (YYYY-MM-DD):");
+        existingClaim.claimDate = parseDate(scanner.nextLine());
+
+        System.out.println("Enter updated exam date (YYYY-MM-DD):");
+        existingClaim.examDate = parseDate(scanner.nextLine());
+
+        System.out.println("Enter updated claim amount:");
+        existingClaim.claimAmount = scanner.nextDouble();
+        scanner.nextLine();
+
+        System.out.println("Enter updated claim status (New, Processing, Done):");
+        existingClaim.status = scanner.nextLine();
+
+        System.out.println("Enter updated receiver banking info:");
+        existingClaim.receiverBankingInfo = scanner.nextLine();
+
+        claimManager.update(existingClaim);
+
+        System.out.println("Claim updated successfully.");
+    }
+
+
+    private static void manageCustomers(List<Customer> customers) {
+        // Add, delete, view customers functionality
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nManage Customers");
+            System.out.println("1. Add Customer");
+            System.out.println("2. Delete Customer");
+            System.out.println("3. View All Customers");
+            System.out.println("4. Back to Main Menu");
+            System.out.print("Enter your choice: ");
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    addCustomer(customers);
+                    break;
+                case "2":
+                    deleteCustomer(customers);
+                    break;
+                case "3":
+                    viewAllCustomers(customers);
+                    break;
+                case "4":
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please enter a valid option.");
+            }
+        }
+    }
+
+    private static void addCustomer(List<Customer> customers) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter customer ID: ");
+        String id = scanner.nextLine();
+
+        System.out.print("Enter customer full name: ");
+        String fullName = scanner.nextLine();
+
+        // Assuming InsuranceCard details are already managed elsewhere
+        InsuranceCard insuranceCard = null;
+
+        Customer newCustomer = new Customer(id, fullName, insuranceCard);
+        customers.add(newCustomer);
+
+        System.out.println("Customer added successfully.");
+    }
+
+    private static void deleteCustomer(List<Customer> customers) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter customer ID to delete: ");
+        String id = scanner.nextLine();
+
+        Iterator<Customer> iterator = customers.iterator();
+        while (iterator.hasNext()) {
+            Customer customer = iterator.next();
+            if (customer.id.equals(id)) {
+                iterator.remove();
+                System.out.println("Customer deleted successfully.");
+                return;
+            }
+        }
+
+        System.out.println("Customer not found.");
+    }
+
+    private static void viewAllCustomers(List<Customer> customers) {
+        System.out.println("All Customers:");
+        for (Customer customer : customers) {
+            System.out.println("ID: " + customer.id);
+            System.out.println("Full Name: " + customer.fullName);
+            System.out.println("Insurance Card: " + customer.insuranceCard); // Update as needed
+            System.out.println();
+        }
+    }
+    private static void manageInsuranceCards(List<InsuranceCard> insuranceCards) {
+        // Add, delete, view insurance cards functionality
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nManage Insurance Cards");
+            System.out.println("1. Add Insurance Card");
+            System.out.println("2. Delete Insurance Card");
+            System.out.println("3. View All Insurance Cards");
+            System.out.println("4. Back to Main Menu");
+            System.out.print("Enter your choice: ");
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    addInsuranceCard(insuranceCards);
+                    break;
+                case "2":
+                    deleteInsuranceCard(insuranceCards);
+                    break;
+                case "3":
+                    viewAllInsuranceCards(insuranceCards);
+                    break;
+                case "4":
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please enter a valid option.");
+            }
+        }
+    }
+
+    private static void addInsuranceCard(List<InsuranceCard> insuranceCards) {
+        // Implementation of adding an insurance card
+        // You can refer to the previous implementation
+    }
+
+    private static void deleteInsuranceCard(List<InsuranceCard> insuranceCards) {
+        // Implementation of deleting an insurance card
+        // You can refer to the previous implementation
+    }
+
+    private static void viewAllInsuranceCards(List<InsuranceCard> insuranceCards) {
+        // Implementation of viewing all insurance cards
+        // You can refer to the previous implementation
+    }
     private static Date parseDate(String dateString) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false); // Disable lenient parsing
@@ -445,11 +590,12 @@ public class Main {
             try {
                 return dateFormat.parse(dateString);
             } catch (ParseException e) {
-                System.out.println("Invalid date format! Please enter a date in the format YYYY-MM-DD:");
+                System.out.println("Invalid date format! Please enter a date in the format YYYY-MM-DD");
+                System.out.print("Enter date (YYYY-MM-DD): ");
                 Scanner scanner = new Scanner(System.in);
                 dateString = scanner.nextLine();
             }
         }
     }
-}
 
+}
