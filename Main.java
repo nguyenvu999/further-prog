@@ -114,11 +114,20 @@ class FileManager {
 
     public static List<Customer> loadCustomers(String filePath) {
         List<Customer> customers = new ArrayList<>();
+        Set<String> existingIds = new HashSet<>(); // To track existing IDs
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
                 String id = parts[0];
+
+                // Check if the ID already exists
+                if (existingIds.contains(id)) {
+                    System.out.println("Error: Duplicate customer ID found in the file. Skipping.");
+                    continue; // Skip adding this customer
+                }
+                existingIds.add(id); // Add ID to set
+
                 String fullName = parts[1];
                 String cardNumber = parts[2];
                 InsuranceCard insuranceCard = findInsuranceCard(cardNumber);
@@ -129,6 +138,7 @@ class FileManager {
         }
         return customers;
     }
+
 
     public static List<Claim> loadClaims(String filePath) {
         List<Claim> claims = new ArrayList<>();
@@ -498,6 +508,14 @@ public class Main {
         System.out.print("Enter customer ID: ");
         String id = scanner.nextLine();
 
+        // Check if the ID already exists
+        for (Customer customer : customers) {
+            if (customer.id.equals(id)) {
+                System.out.println("Error: Customer with the same ID already exists.");
+                return; // Exit the method if ID already exists
+            }
+        }
+
         System.out.print("Enter customer full name: ");
         String fullName = scanner.nextLine();
 
@@ -569,19 +587,56 @@ public class Main {
     }
 
     private static void addInsuranceCard(List<InsuranceCard> insuranceCards) {
-        // Implementation of adding an insurance card
-        // You can refer to the previous implementation
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter card number: ");
+        String cardNumber = scanner.nextLine();
+
+        System.out.print("Enter card holder: ");
+        String cardHolder = scanner.nextLine();
+
+        System.out.print("Enter policy owner: ");
+        String policyOwner = scanner.nextLine();
+
+        System.out.print("Enter expiration date (YYYY-MM-DD): ");
+        Date expirationDate = parseDate(scanner.nextLine());
+
+        InsuranceCard newCard = new InsuranceCard(cardNumber, cardHolder, policyOwner, expirationDate);
+        insuranceCards.add(newCard);
+
+        System.out.println("Insurance card added successfully.");
     }
 
     private static void deleteInsuranceCard(List<InsuranceCard> insuranceCards) {
-        // Implementation of deleting an insurance card
-        // You can refer to the previous implementation
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter card number to delete: ");
+        String cardNumber = scanner.nextLine();
+
+        Iterator<InsuranceCard> iterator = insuranceCards.iterator();
+        while (iterator.hasNext()) {
+            InsuranceCard card = iterator.next();
+            if (card.cardNumber.equals(cardNumber)) {
+                iterator.remove();
+                System.out.println("Insurance card deleted successfully.");
+                return;
+            }
+        }
+
+        System.out.println("Insurance card not found.");
     }
 
     private static void viewAllInsuranceCards(List<InsuranceCard> insuranceCards) {
-        // Implementation of viewing all insurance cards
-        // You can refer to the previous implementation
+        System.out.println("All Insurance Cards:");
+        for (InsuranceCard card : insuranceCards) {
+            System.out.println("Card Number: " + card.cardNumber);
+            System.out.println("Card Holder: " + card.cardHolder);
+            System.out.println("Policy Owner: " + card.policyOwner);
+            System.out.println("Expiration Date: " + card.expirationDate);
+            System.out.println();
+        }
     }
+
     private static Date parseDate(String dateString) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false); // Disable lenient parsing
@@ -597,5 +652,4 @@ public class Main {
             }
         }
     }
-
 }
