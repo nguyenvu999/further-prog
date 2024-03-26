@@ -142,11 +142,20 @@ class FileManager {
 
     public static List<Claim> loadClaims(String filePath) {
         List<Claim> claims = new ArrayList<>();
+        Set<String> existingIds = new HashSet<>(); // To track existing claim IDs
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
                 String id = parts[0];
+
+                // Check if the ID already exists
+                if (existingIds.contains(id)) {
+                    System.out.println("Error: Duplicate claim ID found in the file. Skipping.");
+                    continue; // Skip adding this claim
+                }
+                existingIds.add(id); // Add ID to set
+
                 Date claimDate = parts[1].isEmpty() ? null : DATE_FORMAT.parse(parts[1]);
                 String insuredPerson = parts[2];
                 String cardNumber = parts[3];
@@ -164,6 +173,7 @@ class FileManager {
         }
         return claims;
     }
+
 
     public static List<InsuranceCard> loadInsuranceCards(String filePath) {
         List<InsuranceCard> cards = new ArrayList<>();
