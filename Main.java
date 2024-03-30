@@ -4,8 +4,8 @@
     import java.util.*;
 
     class Customer {
-        String id;
-        String fullName;
+        final String id;
+        final String fullName;
         InsuranceCard insuranceCard;
         List<Claim> claims;
         List<Customer> dependents;
@@ -16,7 +16,38 @@
             this.insuranceCard = insuranceCard;
             this.claims = new ArrayList<>();
             this.dependents = new ArrayList<>();
+
+            // Update cardholder and policy owner
+            if (insuranceCard != null) {
+                insuranceCard.setCardHolder(fullName);
+                insuranceCard.setPolicyOwner(fullName);
+            }
         }
+
+        // Getter for ID
+        public String getId() {
+            return id;
+        }
+
+        // Getter for full name
+        public String getFullName() {
+            return fullName;
+        }
+
+        // Getter for insurance card
+        public InsuranceCard getInsuranceCard() {
+            return insuranceCard;
+        }
+
+        // Setter for insurance card
+        public void setInsuranceCard(InsuranceCard insuranceCard) {
+            this.insuranceCard = insuranceCard;
+            if (insuranceCard != null) {
+                insuranceCard.setCardHolder(fullName);
+                insuranceCard.setPolicyOwner(fullName);
+            }
+        }
+
 
         public void addClaim(Claim claim) {
             claims.add(claim);
@@ -25,6 +56,7 @@
         public void removeClaim(Claim claim) {
             claims.remove(claim);
         }
+
     }
 
     class InsuranceCard {
@@ -34,12 +66,29 @@
         Date expirationDate;
 
         public InsuranceCard(String cardNumber, String cardHolder, String policyOwner, Date expirationDate) {
+            // Validate card number to contain only numbers
+            if (!cardNumber.matches("\\d+")) {
+                throw new IllegalArgumentException("Invalid card number. Only numbers are allowed.");
+            }
+
             this.cardNumber = cardNumber;
             this.cardHolder = cardHolder;
             this.policyOwner = policyOwner;
             this.expirationDate = expirationDate;
         }
+
+        // Setter for card holder
+        public void setCardHolder(String cardHolder) {
+            this.cardHolder = cardHolder;
+        }
+
+        // Setter for policy owner
+        public void setPolicyOwner(String policyOwner) {
+            this.policyOwner = policyOwner;
+        }
+
     }
+
 
     class Claim {
         String id;
@@ -185,6 +234,13 @@
                 while ((line = reader.readLine()) != null) {
                     String[] parts = line.split(",");
                     String cardNumber = parts[0];
+
+                    // Validate card number to contain only numbers
+                    if (!cardNumber.matches("\\d+")) {
+                        System.out.println("Error: Invalid card number detected in file. Only numbers are allowed.");
+                        continue;
+                    }
+
                     String cardHolder = parts[1];
                     String policyOwner = parts[2];
                     Date expirationDate = DATE_FORMAT.parse(parts[3]);
@@ -195,6 +251,7 @@
             }
             return cards;
         }
+
 
         public static void saveCustomers(List<Customer> customers, String filePath) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
@@ -245,10 +302,12 @@
 
     public class Main {
         private static ClaimProcessManager claimManager;
+        private static List<Customer> customers; // Declare customers as a class-level variable
+
 
         public static void main(String[] args) {
 
-            List<Customer> customers = FileManager.loadCustomers("customers.txt");
+            customers = FileManager.loadCustomers("customers.txt");
             List<Claim> claims = FileManager.loadClaims("claims.txt");
             List<InsuranceCard> insuranceCards = FileManager.loadInsuranceCards("insurance_cards.txt");
 
@@ -337,55 +396,49 @@
                 }
             } while (id == null || !id.matches("f-\\d{10}")); // Ensure id is not null before matching
 
-
-            System.out.print("Enter claim date (YYYY-MM-DD): ");
-            Date claimDate = parseDate(getInputNotBlank(scanner, "Claim Date"));
-
-            String insuredPerson;
-            do {
-                System.out.print("Insured Person: ");
-                insuredPerson = getInputNotBlank(scanner, "Insured Person");
-                if (containsDigits(insuredPerson)) {
-                    System.out.println("Error: Name cannot contain numbers. Please enter a valid name.");
-                    insuredPerson = null;
-                }
-            } while (insuredPerson == null);
+            System.out.print("Enter insured person: ");
+            String insuredPerson = scanner.nextLine();
 
             System.out.print("Enter card number: ");
-            String cardNumber = getInputNotBlank(scanner, "Card Number");
+            String cardNumber = scanner.nextLine();
 
-            System.out.print("Enter exam date (YYYY-MM-DD): ");
-            Date examDate = parseDate(getInputNotBlank(scanner, "Exam Date"));
-
-            double claimAmount;
-            while (true) {
-                try {
-                    System.out.print("Enter claim amount: ");
-                    String input = getInputNotBlank(scanner, "Claim Amount");
-                    claimAmount = Double.parseDouble(input);
-                    break; // Exit loop if input is successfully read
-                } catch (NumberFormatException e) {
-                    System.out.println("Error: Invalid input for claim amount. Please enter a valid number.");
+            // Check if the insured person and policyholder names match the customer's name
+            boolean autoFill = true;
+            for (Customer customer : customers) {
+                if (customer.fullName.equalsIgnoreCase(insuredPerson)) {
+                    insuredPerson = customer.fullName; // Use customer's name for insured person
+                } else if (customer.insuranceCard != null && customer.insuranceCard.cardNumber.equals(cardNumber)
+                        && customer.fullName.equalsIgnoreCase(customer.insuranceCard.cardHolder)) {
+                    // Use customer's name for policyholder if the card number matches and cardholder name matches customer's name
+                    autoFill = false;
                 }
             }
 
-            String status;
-            do {
-                status = getInputNotBlank(scanner, "Claim Status (New, Processing, Done)");
-                if (!isValidStatus(status)) {
-                    System.out.println("Error: Invalid status. Please enter one of the following: New, Processing, Done.");
+            if (autoFill) {
+                System.out.println("Auto-filled insured person and policy holder names with the customer's name.");
+            }
+
+            // Find the related customer
+            Customer relatedCustomer = null;
+            for (Customer customer : customers) {
+                if (customer.fullName.equalsIgnoreCase(insuredPerson) && customer.insuranceCard.cardNumber.equals(cardNumber)) {
+                    relatedCustomer = customer;
+                    break;
                 }
-            } while (!isValidStatus(status));
+            }
 
-            System.out.print("Enter receiver banking info: ");
-            String receiverBankingInfo = getInputNotBlank(scanner, "Receiver Banking Info");
+            if (relatedCustomer == null) {
+                System.out.println("Error: No customer found with the provided insured person and card number.");
+                return;
+            }
 
-            Claim newClaim = new Claim(id, claimDate, insuredPerson, cardNumber, examDate,
-                    null, claimAmount, status, receiverBankingInfo);
+            Claim newClaim = new Claim(id, new Date(), insuredPerson, cardNumber, new Date(), null, 0, "New", "");
+            relatedCustomer.addClaim(newClaim);
             claimManager.add(newClaim);
 
-            System.out.println("Claim added successfully.");
+            System.out.println("Claim added successfully to customer: " + relatedCustomer.fullName);
         }
+
 
         private static String getInputNotBlank(Scanner scanner, String fieldName) {
             String input;
@@ -530,27 +583,39 @@
         private static void addCustomer(List<Customer> customers) {
             Scanner scanner = new Scanner(System.in);
 
-            System.out.print("Enter customer ID: ");
-            String id = scanner.nextLine();
-
-            // Check if the ID already exists
-            for (Customer customer : customers) {
-                if (customer.id.equals(id)) {
+            String id;
+            do {
+                System.out.print("Enter customer ID (Format: c-numbers;7 numbers): ");
+                id = scanner.nextLine().trim();
+                if (id.isEmpty()) {
+                    System.out.println("Error: Customer ID cannot be blank. Please enter a value.");
+                } else if (!id.matches("c-\\d{7}")) {
+                    System.out.println("Error: Invalid customer ID format. Please enter in the format c-numbers;7 numbers.");
+                } else if (isDuplicateCustomerId(id, customers)) {
                     System.out.println("Error: Customer with the same ID already exists.");
-                    return; // Exit the method if ID already exists
+                    id = null; // Reset id to trigger re-entry of customer ID
                 }
-            }
+            } while (id == null || !id.matches("c-\\d{7}"));
 
             System.out.print("Enter customer full name: ");
             String fullName = scanner.nextLine();
 
             // Assuming InsuranceCard details are already managed elsewhere
             InsuranceCard insuranceCard = null;
-
             Customer newCustomer = new Customer(id, fullName, insuranceCard);
             customers.add(newCustomer);
 
             System.out.println("Customer added successfully.");
+        }
+
+
+        private static boolean isDuplicateCustomerId(String customerId, List<Customer> customers) {
+            for (Customer customer : customers) {
+                if (customer.id.equals(customerId)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void deleteCustomer(List<Customer> customers) {
@@ -577,7 +642,7 @@
             for (Customer customer : customers) {
                 System.out.println("ID: " + customer.id);
                 System.out.println("Full Name: " + customer.fullName);
-                System.out.println("Insurance Card: " + customer.insuranceCard); // Update as needed
+                System.out.println("Insurance Card: " + customer.insuranceCard);
                 System.out.println();
             }
         }
@@ -614,8 +679,14 @@
         private static void addInsuranceCard(List<InsuranceCard> insuranceCards) {
             Scanner scanner = new Scanner(System.in);
 
-            System.out.print("Enter card number: ");
-            String cardNumber = scanner.nextLine();
+            String cardNumber;
+            do {
+                System.out.print("Enter card number: ");
+                cardNumber = scanner.nextLine().trim();
+                if (!isValidCardNumber(cardNumber)) {
+                    System.out.println("Error: Card number can only contain digits. Please enter a valid card number.");
+                }
+            } while (!isValidCardNumber(cardNumber));
 
             System.out.print("Enter card holder: ");
             String cardHolder = scanner.nextLine();
@@ -678,6 +749,9 @@
             }
         }
 
+        private static boolean isValidCardNumber(String cardNumber) {
+            return cardNumber.matches("\\d+");
+        }
 
 
 
