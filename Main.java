@@ -4,11 +4,12 @@
     import java.util.*;
 
     class Customer {
-        final String id;
-        final String fullName;
+        String id;
+        String fullName;
         InsuranceCard insuranceCard;
         List<Claim> claims;
         List<Customer> dependents;
+        String role; // Add a field for the role
 
         public Customer(String id, String fullName, InsuranceCard insuranceCard) {
             this.id = id;
@@ -16,38 +17,16 @@
             this.insuranceCard = insuranceCard;
             this.claims = new ArrayList<>();
             this.dependents = new ArrayList<>();
-
-            // Update cardholder and policy owner
-            if (insuranceCard != null) {
-                insuranceCard.setCardHolder(fullName);
-                insuranceCard.setPolicyOwner(fullName);
-            }
         }
 
-        // Getter for ID
-        public String getId() {
-            return id;
+        // Getter and setter for the role field
+        public String getRole() {
+            return role;
         }
 
-        // Getter for full name
-        public String getFullName() {
-            return fullName;
+        public void setRole(String role) {
+            this.role = role;
         }
-
-        // Getter for insurance card
-        public InsuranceCard getInsuranceCard() {
-            return insuranceCard;
-        }
-
-        // Setter for insurance card
-        public void setInsuranceCard(InsuranceCard insuranceCard) {
-            this.insuranceCard = insuranceCard;
-            if (insuranceCard != null) {
-                insuranceCard.setCardHolder(fullName);
-                insuranceCard.setPolicyOwner(fullName);
-            }
-        }
-
 
         public void addClaim(Claim claim) {
             claims.add(claim);
@@ -56,8 +35,8 @@
         public void removeClaim(Claim claim) {
             claims.remove(claim);
         }
-
     }
+
 
     class InsuranceCard {
         String cardNumber;
@@ -66,30 +45,12 @@
         Date expirationDate;
 
         public InsuranceCard(String cardNumber, String cardHolder, String policyOwner, Date expirationDate) {
-            // Validate card number to contain only numbers
-            if (!cardNumber.matches("\\d+")) {
-                throw new IllegalArgumentException("Invalid card number. Only numbers are allowed.");
-            }
-
             this.cardNumber = cardNumber;
             this.cardHolder = cardHolder;
             this.policyOwner = policyOwner;
             this.expirationDate = expirationDate;
         }
-
-        // Setter for card holder
-        public void setCardHolder(String cardHolder) {
-            this.cardHolder = cardHolder;
-        }
-
-        // Setter for policy owner
-        public void setPolicyOwner(String policyOwner) {
-            this.policyOwner = policyOwner;
-        }
-
     }
-
-
     class Claim {
         String id;
         Date claimDate;
@@ -183,7 +144,14 @@
                     String fullName = parts[1];
                     String cardNumber = parts[2];
                     InsuranceCard insuranceCard = findInsuranceCard(cardNumber);
-                    customers.add(new Customer(id, fullName, insuranceCard));
+                    Customer customer = new Customer(id, fullName, insuranceCard);
+
+                    if (parts.length >= 4) {
+                        String role = parts[3];
+                        customer.setRole(role);
+                    }
+
+                    customers.add(customer);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -583,30 +551,42 @@
         private static void addCustomer(List<Customer> customers) {
             Scanner scanner = new Scanner(System.in);
 
-            String id;
-            do {
-                System.out.print("Enter customer ID (Format: c-numbers;7 numbers): ");
-                id = scanner.nextLine().trim();
-                if (id.isEmpty()) {
-                    System.out.println("Error: Customer ID cannot be blank. Please enter a value.");
-                } else if (!id.matches("c-\\d{7}")) {
-                    System.out.println("Error: Invalid customer ID format. Please enter in the format c-numbers;7 numbers.");
-                } else if (isDuplicateCustomerId(id, customers)) {
+            System.out.print("Enter customer ID (Format: c-numbers; 7 numbers): ");
+            String id = scanner.nextLine();
+
+            // Check if the ID already exists
+            for (Customer customer : customers) {
+                if (customer.id.equals(id)) {
                     System.out.println("Error: Customer with the same ID already exists.");
-                    id = null; // Reset id to trigger re-entry of customer ID
+                    return; // Exit the method if ID already exists
                 }
-            } while (id == null || !id.matches("c-\\d{7}"));
+            }
 
             System.out.print("Enter customer full name: ");
             String fullName = scanner.nextLine();
 
+            System.out.print("Choose role (Enter '1' for policy holder, '2' for dependent): ");
+            String roleChoice = scanner.nextLine();
+            String role;
+            if (roleChoice.equals("1")) {
+                role = "policy holder";
+            } else if (roleChoice.equals("2")) {
+                role = "dependent";
+            } else {
+                System.out.println("Invalid role choice. Defaulting to policy holder.");
+                role = "policy holder";
+            }
+
             // Assuming InsuranceCard details are already managed elsewhere
             InsuranceCard insuranceCard = null;
+
             Customer newCustomer = new Customer(id, fullName, insuranceCard);
+            newCustomer.setRole(role); // Set the role for the customer
             customers.add(newCustomer);
 
             System.out.println("Customer added successfully.");
         }
+
 
 
         private static boolean isDuplicateCustomerId(String customerId, List<Customer> customers) {
@@ -642,10 +622,12 @@
             for (Customer customer : customers) {
                 System.out.println("ID: " + customer.id);
                 System.out.println("Full Name: " + customer.fullName);
-                System.out.println("Insurance Card: " + customer.insuranceCard);
+                System.out.println("Role: " + customer.getRole()); // Add this line to display the role
+                System.out.println("Insurance Card: " + (customer.insuranceCard != null ? customer.insuranceCard : "N/A")); // Update to handle null insurance card
                 System.out.println();
             }
         }
+
         private static void manageInsuranceCards(List<InsuranceCard> insuranceCards) {
             // Add, delete, view insurance cards functionality
             Scanner scanner = new Scanner(System.in);
