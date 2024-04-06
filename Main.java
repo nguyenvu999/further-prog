@@ -577,27 +577,58 @@
             System.out.print("Choose role (Enter '1' for policy holder, '2' for dependent): ");
             String roleChoice = scanner.nextLine();
             String role;
+            List<Customer> chosenDependents = new ArrayList<>(); // Initialize chosenDependents list
+
             if (roleChoice.equals("1")) {
                 role = "policy holder";
+                // Show list of dependents for policy holder to choose from
+                System.out.println("List of Dependents:");
+                int index = 1;
+                for (Customer customer : customers) {
+                    if (customer.getRole().equalsIgnoreCase("dependent")) {
+                        System.out.println(index + ". ID: " + customer.id + ", Full Name: " + customer.fullName);
+                        index++;
+                    }
+                }
+                System.out.println("Enter the numbers of dependents you want to choose (comma-separated): ");
+                String chosenDependentsInput = scanner.nextLine();
+                String[] chosenDependentsArray = chosenDependentsInput.split(",");
+                for (String dependentIndex : chosenDependentsArray) {
+                    int depIndex = Integer.parseInt(dependentIndex.trim()) - 1;
+                    if (depIndex >= 0 && depIndex < customers.size()) {
+                        Customer dependent = customers.get(depIndex);
+                        if (dependent.getRole().equalsIgnoreCase("dependent")) {
+                            chosenDependents.add(dependent);
+                        }
+                    }
+                }
             } else if (roleChoice.equals("2")) {
                 role = "dependent";
             } else {
-                System.out.println("Invalid role choice. Defaulting to policy holder.");
-                role = "policy holder";
+                System.out.println("Invalid role choice. Defaulting to dependent.");
+                role = "dependent";
             }
 
+            // Assuming you will add insurance card details here
             System.out.print("Enter insurance card number: ");
             String cardNumber = InsuranceCard.getInputNotBlank(scanner, "card number");
 
-            // Create InsuranceCard object with only card number
-            InsuranceCard insuranceCard = new InsuranceCard(cardNumber, "", "", null);
-
+            // Create the new customer based on input
             Customer newCustomer = new Customer(id, fullName);
             newCustomer.setRole(role);
+            // Add insurance card information to the customer
+            newCustomer.setInsuranceCard(new InsuranceCard(cardNumber, "", "", null));
+            // Add chosen dependents to the customer
+            newCustomer.getDependents().addAll(chosenDependents);
             customers.add(newCustomer);
 
             System.out.println("Customer added successfully.");
         }
+
+
+
+
+
 
         private static boolean isValidCustomerIdFormat(String customerId) {
             // Check if the ID matches the required format c-numbers;7 numbers
@@ -642,15 +673,27 @@
                 System.out.println("Full Name: " + customer.fullName);
                 System.out.println("Role: " + customer.getRole());
 
-                // Show insurance card information entered while adding the customer
+                // Print insurance card information
                 if (customer.insuranceCard != null) {
                     System.out.println("Insurance Card Number: " + customer.insuranceCard.cardNumber);
+                }
 
-
+                // Print dependents for policyholders
+                if (customer.getRole().equalsIgnoreCase("policy holder")) {
+                    List<Customer> dependents = customer.getDependents();
+                    if (!dependents.isEmpty()) {
+                        System.out.println("Dependents:");
+                        for (Customer dependent : dependents) {
+                            System.out.println("  - ID: " + dependent.id + ", Full Name: " + dependent.fullName);
+                        }
+                    } else {
+                        System.out.println("No dependents chosen.");
+                    }
                 }
                 System.out.println();
             }
         }
+
 
 
         private static void manageInsuranceCards(List<InsuranceCard> insuranceCards) {
