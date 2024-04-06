@@ -7,16 +7,22 @@
         String id;
         String fullName;
         InsuranceCard insuranceCard;
+
+
         List<Claim> claims;
         List<Customer> dependents;
         String role; // Add a field for the role
 
-        public Customer(String id, String fullName, InsuranceCard insuranceCard) {
+        public Customer(String id, String fullName) {
             this.id = id;
             this.fullName = fullName;
-            this.insuranceCard = insuranceCard;
             this.claims = new ArrayList<>();
             this.dependents = new ArrayList<>();
+        }
+
+        // Add a setter method for InsuranceCard
+        public void setInsuranceCard(InsuranceCard insuranceCard) {
+            this.insuranceCard = insuranceCard;
         }
 
         // Getter and setter for the role field
@@ -35,6 +41,29 @@
         public void removeClaim(Claim claim) {
             claims.remove(claim);
         }
+
+        public static String getInputNotBlank(Scanner scanner, String fieldName) {
+            String input;
+            do {
+
+                input = scanner.nextLine().trim();
+                if (input.isEmpty()) {
+                    System.out.println("Error: " + fieldName + " cannot be blank. Please enter a value.");
+                    System.out.print("Enter " + fieldName + ": ");
+                }
+            } while (input.isEmpty());
+            return input;
+        }
+
+        public void addDependent(Customer dependent) {
+            if (this.dependents != null) {
+                this.dependents.add(dependent);
+            }
+        }
+
+        public List<Customer> getDependents() {
+            return this.dependents;
+        }
     }
 
 
@@ -49,6 +78,18 @@
             this.cardHolder = cardHolder;
             this.policyOwner = policyOwner;
             this.expirationDate = expirationDate;
+        }
+        public static String getInputNotBlank(Scanner scanner, String fieldName) {
+            String input;
+            do {
+
+                input = scanner.nextLine().trim();
+                if (input.isEmpty()) {
+                    System.out.println("Error: " + fieldName + " cannot be blank. Please enter a value.");
+                    System.out.print("Enter " + fieldName + ": ");
+                }
+            } while (input.isEmpty());
+            return input;
         }
     }
     class Claim {
@@ -127,29 +168,22 @@
 
         public static List<Customer> loadCustomers(String filePath) {
             List<Customer> customers = new ArrayList<>();
-            Set<String> existingIds = new HashSet<>(); // To track existing IDs
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String[] parts = line.split(",");
                     String id = parts[0];
-
-                    // Check if the ID already exists
-                    if (existingIds.contains(id)) {
-                        System.out.println("Error: Duplicate customer ID found in the file. Skipping.");
-                        continue; // Skip adding this customer
-                    }
-                    existingIds.add(id); // Add ID to set
-
                     String fullName = parts[1];
-                    String cardNumber = parts[2];
-                    InsuranceCard insuranceCard = findInsuranceCard(cardNumber);
-                    Customer customer = new Customer(id, fullName, insuranceCard);
+                    String role = parts[2]; // Assuming role is the third field in the file
+                    String cardNumber = parts[3]; // Assuming card number is the fourth field in the file
 
-                    if (parts.length >= 4) {
-                        String role = parts[3];
-                        customer.setRole(role);
-                    }
+                    // Create a new Customer object with insurance card information
+                    Customer customer = new Customer(id, fullName);
+                    customer.setRole(role);
+
+                    // Create an InsuranceCard object with card number and set it to the customer
+                    InsuranceCard insuranceCard = new InsuranceCard(cardNumber, "", "", null);
+                    customer.setInsuranceCard(insuranceCard);
 
                     customers.add(customer);
                 }
@@ -158,7 +192,6 @@
             }
             return customers;
         }
-
 
         public static List<Claim> loadClaims(String filePath) {
             List<Claim> claims = new ArrayList<>();
@@ -224,12 +257,12 @@
         public static void saveCustomers(List<Customer> customers, String filePath) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
                 for (Customer customer : customers) {
-                    String cardNumber = customer.insuranceCard != null ? customer.insuranceCard.cardNumber : "N/A";
-                    writer.write(customer.id + "," + customer.fullName + "," + cardNumber);
+                    writer.write(customer.id + "," + customer.fullName + "," + customer.getRole());
                     writer.newLine();
                 }
+                System.out.println("Customers saved to file successfully.");
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("Error saving customers to file: " + e.getMessage());
             }
         }
 
@@ -261,23 +294,19 @@
             }
         }
 
-        private static InsuranceCard findInsuranceCard(String cardNumber
-        ) {
-            // Implement logic to find insurance card by card number
-            return null;
-        }
+
     }
 
     public class Main {
         private static ClaimProcessManager claimManager;
-        private static List<Customer> customers; // Declare customers as a class-level variable
-
+        private static List<Customer> customers;
+        private static List<InsuranceCard> insuranceCards; // Add this variable
 
         public static void main(String[] args) {
+            insuranceCards = FileManager.loadInsuranceCards("insurance_cards.txt"); // Load insurance cards first
 
-            customers = FileManager.loadCustomers("customers.txt");
+            customers = FileManager.loadCustomers("customers.txt"); // Pass insurance cards
             List<Claim> claims = FileManager.loadClaims("claims.txt");
-            List<InsuranceCard> insuranceCards = FileManager.loadInsuranceCards("insurance_cards.txt");
 
             claimManager = new SimpleClaimProcessManager();
             for (Claim claim : claims) {
@@ -318,6 +347,9 @@
                 }
             }
         }
+
+
+
 
         private static void manageClaims() {
             // Add, delete, view claims functionality
@@ -370,42 +402,16 @@
             System.out.print("Enter card number: ");
             String cardNumber = scanner.nextLine();
 
-            // Check if the insured person and policyholder names match the customer's name
-            boolean autoFill = true;
-            for (Customer customer : customers) {
-                if (customer.fullName.equalsIgnoreCase(insuredPerson)) {
-                    insuredPerson = customer.fullName; // Use customer's name for insured person
-                } else if (customer.insuranceCard != null && customer.insuranceCard.cardNumber.equals(cardNumber)
-                        && customer.fullName.equalsIgnoreCase(customer.insuranceCard.cardHolder)) {
-                    // Use customer's name for policyholder if the card number matches and cardholder name matches customer's name
-                    autoFill = false;
-                }
-            }
-
-            if (autoFill) {
-                System.out.println("Auto-filled insured person and policy holder names with the customer's name.");
-            }
-
             // Find the related customer
-            Customer relatedCustomer = null;
-            for (Customer customer : customers) {
-                if (customer.fullName.equalsIgnoreCase(insuredPerson) && customer.insuranceCard.cardNumber.equals(cardNumber)) {
-                    relatedCustomer = customer;
-                    break;
-                }
-            }
 
-            if (relatedCustomer == null) {
-                System.out.println("Error: No customer found with the provided insured person and card number.");
-                return;
-            }
 
             Claim newClaim = new Claim(id, new Date(), insuredPerson, cardNumber, new Date(), null, 0, "New", "");
-            relatedCustomer.addClaim(newClaim);
+
             claimManager.add(newClaim);
 
-            System.out.println("Claim added successfully to customer: " + relatedCustomer.fullName);
+            System.out.println("Claim added successfully to customer: " );
         }
+
 
 
         private static String getInputNotBlank(Scanner scanner, String fieldName) {
@@ -548,22 +554,25 @@
             }
         }
 
+
         private static void addCustomer(List<Customer> customers) {
             Scanner scanner = new Scanner(System.in);
 
-            System.out.print("Enter customer ID (Format: c-numbers; 7 numbers): ");
-            String id = scanner.nextLine();
-
-            // Check if the ID already exists
-            for (Customer customer : customers) {
-                if (customer.id.equals(id)) {
+            String id;
+            do {
+                System.out.print("Enter customer ID (Format: c-numbers;7 numbers): ");
+                id = Customer.getInputNotBlank(scanner, "customer ID");
+                if (!isValidCustomerIdFormat(id)) {
+                    System.out.println("Error: Invalid customer ID format. Please enter in the format c-numbers;7 numbers.");
+                    id = null; // Reset id to trigger re-entry of customer ID
+                } else if (isDuplicateCustomerId(id, customers)) {
                     System.out.println("Error: Customer with the same ID already exists.");
-                    return; // Exit the method if ID already exists
+                    id = null; // Reset id to trigger re-entry of customer ID
                 }
-            }
+            } while (id == null || !isValidCustomerIdFormat(id)); // Ensure id is not null before matching format
 
             System.out.print("Enter customer full name: ");
-            String fullName = scanner.nextLine();
+            String fullName = Customer.getInputNotBlank(scanner, "customer full name");
 
             System.out.print("Choose role (Enter '1' for policy holder, '2' for dependent): ");
             String roleChoice = scanner.nextLine();
@@ -577,15 +586,24 @@
                 role = "policy holder";
             }
 
-            // Assuming InsuranceCard details are already managed elsewhere
-            InsuranceCard insuranceCard = null;
+            System.out.print("Enter insurance card number: ");
+            String cardNumber = InsuranceCard.getInputNotBlank(scanner, "card number");
 
-            Customer newCustomer = new Customer(id, fullName, insuranceCard);
-            newCustomer.setRole(role); // Set the role for the customer
+            // Create InsuranceCard object with only card number
+            InsuranceCard insuranceCard = new InsuranceCard(cardNumber, "", "", null);
+
+            Customer newCustomer = new Customer(id, fullName);
+            newCustomer.setRole(role);
             customers.add(newCustomer);
 
             System.out.println("Customer added successfully.");
         }
+
+        private static boolean isValidCustomerIdFormat(String customerId) {
+            // Check if the ID matches the required format c-numbers;7 numbers
+            return customerId.matches("c-\\d{7}");
+        }
+
 
 
 
@@ -622,11 +640,18 @@
             for (Customer customer : customers) {
                 System.out.println("ID: " + customer.id);
                 System.out.println("Full Name: " + customer.fullName);
-                System.out.println("Role: " + customer.getRole()); // Add this line to display the role
-                System.out.println("Insurance Card: " + (customer.insuranceCard != null ? customer.insuranceCard : "N/A")); // Update to handle null insurance card
+                System.out.println("Role: " + customer.getRole());
+
+                // Show insurance card information entered while adding the customer
+                if (customer.insuranceCard != null) {
+                    System.out.println("Insurance Card Number: " + customer.insuranceCard.cardNumber);
+
+
+                }
                 System.out.println();
             }
         }
+
 
         private static void manageInsuranceCards(List<InsuranceCard> insuranceCards) {
             // Add, delete, view insurance cards functionality
@@ -735,6 +760,35 @@
             return cardNumber.matches("\\d+");
         }
 
+        private static void addDependent(Customer policyHolder, List<Customer> customers) {
+            Scanner scanner = new Scanner(System.in);
 
+            System.out.println("Available Dependents:");
+            for (Customer customer : customers) {
+                if (!customer.id.equals(policyHolder.id)) {
+                    System.out.println("ID: " + customer.id + ", Full Name: " + customer.fullName);
+                }
+            }
+
+            System.out.print("Enter dependent ID: ");
+            String dependentId = scanner.nextLine();
+
+            Customer dependent = findCustomerById(dependentId, customers);
+            if (dependent != null) {
+                policyHolder.addDependent(dependent);
+                System.out.println(dependent.fullName + " added as a dependent to " + policyHolder.fullName);
+            } else {
+                System.out.println("Dependent not found.");
+            }
+        }
+
+        private static Customer findCustomerById(String id, List<Customer> customers) {
+            for (Customer customer : customers) {
+                if (customer.id.equals(id)) {
+                    return customer;
+                }
+            }
+            return null;
+        }
 
     }
