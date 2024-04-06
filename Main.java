@@ -55,6 +55,12 @@
             claims.remove(claim);
         }
 
+
+        public void setDependents(List<Customer> dependents) {
+            this.dependents = dependents;
+        }
+
+
         public static String getInputNotBlank(Scanner scanner, String fieldName) {
             String input;
             do {
@@ -101,6 +107,12 @@
             this.policyOwner = policyOwner;
             this.expirationDate = expirationDate;
         }
+
+
+        public InsuranceCard(String cardNumber) {
+            this.cardNumber = cardNumber;
+        }
+
         public String getCardNumber() {
             return cardNumber;
         }
@@ -427,8 +439,15 @@
             System.out.print("Enter insured person: ");
             String insuredPerson = scanner.nextLine();
 
-            System.out.print("Enter card number: ");
-            String cardNumber = scanner.nextLine();
+            String cardNumber;
+            do {
+                System.out.print("Enter card number (10 digits only): ");
+                cardNumber = scanner.nextLine().trim();
+                if (!isValidCardNumber(cardNumber)) {
+                    System.out.println("Error: Card number can only contain digits and must be 10 digits long.");
+                }
+            } while (!isValidCardNumber(cardNumber));
+
 
             // Find the related customer
 
@@ -619,7 +638,7 @@
                 int index = 1;
                 for (Customer customer : customers) {
                     if (customer.getRole().equalsIgnoreCase("dependent")) {
-                        System.out.println(index + ". ID: " + customer.id + ", Full Name: " + customer.fullName);
+                        System.out.println(index + ". ID: " + customer.getId() + ", Full Name: " + customer.getFullName());
                         index++;
                     }
                 }
@@ -642,21 +661,27 @@
                 role = "dependent";
             }
 
-            // Assuming you will add insurance card details here
-            System.out.print("Enter insurance card number: ");
-            String cardNumber = InsuranceCard.getInputNotBlank(scanner, "card number");
+            String cardNumber;
+            do {
+                System.out.print("Enter insurance card number (10 digits only): ");
+                cardNumber = scanner.nextLine().trim();
+                if (!isValidCardNumber(cardNumber)) {
+                    System.out.println("Error: Card number can only contain digits and must be 10 digits long.");
+                }
+            } while (!isValidCardNumber(cardNumber));
 
-            // Create the new customer based on input
+            // Create InsuranceCard object with card number
+            InsuranceCard insuranceCard = new InsuranceCard(cardNumber);
+
             Customer newCustomer = new Customer(id, fullName);
             newCustomer.setRole(role);
-            // Add insurance card information to the customer
-            newCustomer.setInsuranceCard(new InsuranceCard(cardNumber, "", "", null));
-            // Add chosen dependents to the customer
-            newCustomer.getDependents().addAll(chosenDependents);
+            newCustomer.setInsuranceCard(insuranceCard);
+            newCustomer.setDependents(chosenDependents);
             customers.add(newCustomer);
 
             System.out.println("Customer added successfully.");
         }
+
 
 
 
@@ -867,8 +892,10 @@
         }
 
         private static boolean isValidCardNumber(String cardNumber) {
-            return cardNumber.matches("\\d+");
+            // Check if cardNumber contains only digits and has length of 10
+            return cardNumber.matches("\\d{10}");
         }
+
 
         private static void addDependent(Customer policyHolder, List<Customer> customers) {
             Scanner scanner = new Scanner(System.in);
