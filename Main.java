@@ -20,9 +20,22 @@
             this.dependents = new ArrayList<>();
         }
 
+
         // Add a setter method for InsuranceCard
         public void setInsuranceCard(InsuranceCard insuranceCard) {
             this.insuranceCard = insuranceCard;
+        }
+
+        public InsuranceCard getInsuranceCard() {
+            return insuranceCard;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getFullName() {
+            return fullName;
         }
 
         // Getter and setter for the role field
@@ -64,6 +77,15 @@
         public List<Customer> getDependents() {
             return this.dependents;
         }
+
+        public void updateInsuranceCardNumber(String newCardNumber) {
+            if (insuranceCard != null) {
+                insuranceCard.cardNumber = newCardNumber;
+                System.out.println("Insurance Card Number updated successfully.");
+            } else {
+                System.out.println("No insurance card information available.");
+            }
+        }
     }
 
 
@@ -78,6 +100,9 @@
             this.cardHolder = cardHolder;
             this.policyOwner = policyOwner;
             this.expirationDate = expirationDate;
+        }
+        public String getCardNumber() {
+            return cardNumber;
         }
         public static String getInputNotBlank(Scanner scanner, String fieldName) {
             String input;
@@ -257,7 +282,10 @@
         public static void saveCustomers(List<Customer> customers, String filePath) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
                 for (Customer customer : customers) {
-                    writer.write(customer.id + "," + customer.fullName + "," + customer.getRole());
+                    // Format: id,fullName,role,cardNumber
+                    String customerData = String.format("%s,%s,%s,%s",
+                            customer.getId(), customer.getFullName(), customer.getRole(), customer.getInsuranceCard().getCardNumber());
+                    writer.write(customerData);
                     writer.newLine();
                 }
                 System.out.println("Customers saved to file successfully.");
@@ -530,9 +558,10 @@
             while (true) {
                 System.out.println("\nManage Customers");
                 System.out.println("1. Add Customer");
-                System.out.println("2. Delete Customer");
-                System.out.println("3. View All Customers");
-                System.out.println("4. Back to Main Menu");
+                System.out.println("2. Update Customer");
+                System.out.println("3. Delete Customer");
+                System.out.println("4. View All Customers");
+                System.out.println("5. Back to Main Menu");
                 System.out.print("Enter your choice: ");
                 String choice = scanner.nextLine();
 
@@ -541,13 +570,17 @@
                         addCustomer(customers);
                         break;
                     case "2":
-                        deleteCustomer(customers);
+                        updateCustomer(customers);
                         break;
                     case "3":
-                        viewAllCustomers(customers);
+                        deleteCustomer(customers);
                         break;
                     case "4":
+                        viewAllCustomers(customers);
+                        break;
+                    case "5":
                         return;
+
                     default:
                         System.out.println("Invalid choice. Please enter a valid option.");
                 }
@@ -590,7 +623,7 @@
                         index++;
                     }
                 }
-                System.out.println("Enter the numbers of dependents you want to choose (comma-separated): ");
+                System.out.println("Enter the numbers of dependents you want to choose (comma if you want to choose more than 1): ");
                 String chosenDependentsInput = scanner.nextLine();
                 String[] chosenDependentsArray = chosenDependentsInput.split(",");
                 for (String dependentIndex : chosenDependentsArray) {
@@ -693,6 +726,40 @@
                 System.out.println();
             }
         }
+
+        private static void updateCustomer(List<Customer> customers) {
+            Scanner scanner = new Scanner(System.in);
+
+            System.out.print("Enter customer ID to update: ");
+            String idToUpdate = scanner.nextLine();
+
+            Customer customerToUpdate = null;
+            for (Customer customer : customers) {
+                if (customer.id.equals(idToUpdate)) {
+                    customerToUpdate = customer;
+                    break;
+                }
+            }
+
+            if (customerToUpdate == null) {
+                System.out.println("Customer not found.");
+                return;
+            }
+
+            System.out.println("Updating Customer ID: " + customerToUpdate.id);
+            System.out.print("Enter updated full name: ");
+            String updatedFullName = scanner.nextLine();
+            customerToUpdate.fullName = updatedFullName;
+
+
+
+            System.out.print("Enter updated insurance card number: ");
+            String newCardNumber = scanner.nextLine();
+            customerToUpdate.updateInsuranceCardNumber(newCardNumber);
+
+            System.out.println("Customer information updated successfully.");
+        }
+
 
 
 
