@@ -1,3 +1,7 @@
+/**
+ *  @author Vu Pham Nguyen Vu - s3929202
+ */
+
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
