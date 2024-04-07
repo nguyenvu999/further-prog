@@ -15,12 +15,11 @@ To use this application, follow these steps:
 
 1. Clone the GitHub repository:
    ```
-   git clone https://github.com/vtq2301/ClaimManagementSystem.git
-   ```
+   git clone https://github.com/nguyenvu999/further-prog.git
 
-2. Make sure you are on the `master` branch:
+2. Make sure you are on the `main` branch:
    ```
-   git checkout master
+   git checkout main
    ```
 
 3. Compile and run the `Main` class or run the application using your preferred IDE.
